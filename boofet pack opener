@@ -9,7 +9,6 @@ panel.style = `
   overflow-y: auto;
   padding: 12px;
   font-family: monospace;
-  font-weight: bold; /* bold font */
   color: white;
   border-radius: 14px;
   z-index: 999999;
@@ -40,61 +39,86 @@ style.innerHTML = `
 }`;
 document.head.appendChild(style);
 
-// ===== NORMAL RARITY LOGIC =====
-function rollPack() {
-  const r = Math.random();
-  if (r < 0.001) return { name: "Legendary", color: "#facc15" };
-  if (r < 0.01)  return { name: "Chroma",     color: "#22d3ee" };
-  if (r < 0.05)  return { name: "Epic",       color: "#a855f7" };
-  if (r < 0.25)  return { name: "Rare",       color: "#3b82f6" };
-  return           { name: "Uncommon",        color: "#22c55e" };
-}
+// ===== PACKS =====
+const packs = {
+  legendary: "#facc15",
+  chroma: "#22d3ee",
+  epic: "#a855f7",
+  rare: "#3b82f6",
+  uncommon: "#22c55e"
+};
 
 // ===== FOOTER =====
 const footer = document.createElement("div");
 footer.style = "margin-top:10px;opacity:0.8;font-size:12px;";
-footer.innerHTML = `<hr>Thanks for using my opener<br>- PrimeAndrew / PrimeAugust`;
+footer.innerHTML = `<hr><b>Thanks for using my opener<br>- PrimeAndrew / PrimeAugust</b>`;
 panel.appendChild(footer);
 
-// ===== INFINITE PACK OPENER WITH AGGREGATION =====
-const packCounts = {}; // track counts for each pull
-function openInfinitePacks(packName, batchSize = 10, delay = 200) {
-  const normalized = packName.trim();
-  if (!normalized) return;
+// ===== INPUT FOR CUSTOM PACK =====
+const inputContainer = document.createElement("div");
+inputContainer.style = "margin-bottom:10px;";
+inputContainer.innerHTML = `
+  <input id="packInput" placeholder="Type pack name (not case-sensitive)" style="width: 70%; padding: 4px; border-radius: 6px; border:none; font-family: monospace;" />
+  <button id="packButton" style="padding:4px 6px; border-radius:6px; border:none; cursor:pointer;">Pull</button>
+`;
+panel.insertBefore(inputContainer, footer);
 
-  setInterval(() => {
-    for (let i = 0; i < batchSize; i++) {
-      const pull = rollPack();
-      const key = pull.name;
+const packInput = document.getElementById("packInput");
+const packButton = document.getElementById("packButton");
 
-      // increase count
-      packCounts[key] = (packCounts[key] || 0) + 1;
+// ===== PACK OPENING LOGIC WITH STACKING =====
+let packCount = 0;
+const packLines = {}; // track lines for each pack
 
-      // if line already exists, update it; otherwise, create it
-      let line = panel.querySelector(`[data-pull="${key}"]`);
-      if (!line) {
-        line = document.createElement("div");
-        line.style.color = pull.color;
-        line.dataset.pull = key;
-        line.textContent = `${key} x1`;
-        panel.insertBefore(line, footer);
-      } else {
-        let count = packCounts[key];
-        // show in k if large enough
-        if (count >= 1000) {
-          const kCount = Math.floor(count / 1000);
-          line.textContent = `${key} x${kCount}k`;
-        } else {
-          line.textContent = `${key} x${count}`;
-        }
-      }
-    }
-
-    // scroll panel
-    panel.scrollTop = panel.scrollHeight;
-  }, delay);
+function rollPack(customPack) {
+  if (customPack) {
+    const key = customPack.toLowerCase();
+    if (packs[key]) return { name: key.charAt(0).toUpperCase() + key.slice(1), color: packs[key] };
+  }
+  const r = Math.random();
+  if (r < 0.001) return { name: "Legendary", color: packs.legendary };
+  if (r < 0.01)  return { name: "Chroma", color: packs.chroma };
+  if (r < 0.05)  return { name: "Epic", color: packs.epic };
+  if (r < 0.25)  return { name: "Rare", color: packs.rare };
+  return { name: "Uncommon", color: packs.uncommon };
 }
 
-//ASK USER FOR PACK
-const chosenPack = prompt("Which pack do you want to open?").trim();
-if (chosenPack) openInfinitePacks(chosenPack);
+function addPackLine(pull) {
+  packCount++;
+  const packName = pull.name;
+
+  if (packLines[packName]) {
+    // Already exists, increment count
+    packLines[packName].count++;
+    packLines[packName].line.innerHTML = `<b>#${packCount - packLines[packName].count + 1} → ${packName} ${packLines[packName].count}x</b>`;
+  } else {
+    // New line
+    const line = document.createElement("div");
+    line.style.color = pull.color;
+    line.innerHTML = `<b>#${packCount} → ${packName}</b>`;
+    panel.insertBefore(line, footer);
+    packLines[packName] = { line, count: 1 };
+  }
+
+  panel.scrollTop = panel.scrollHeight;
+}
+
+// ===== SUPER FAST PACK OPENING =====
+function openInfinitePacks(customPack = null) {
+  function loop() {
+    const pull = rollPack(customPack);
+    addPackLine(pull);
+    setTimeout(loop, 1); // 1ms delay, almost instant
+  }
+  loop();
+}
+
+// ===== BUTTON EVENT =====
+packButton.addEventListener("click", () => {
+  const packName = packInput.value.trim();
+  if (!packName) {
+    openInfinitePacks(); // random if blank
+  } else {
+    openInfinitePacks(packName); // chosen pack, not case-sensitive
+  }
+});
