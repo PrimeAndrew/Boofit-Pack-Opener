@@ -78,5 +78,5 @@ function openInfinitePacks(batchSize = 5, delay = 200) {
   }, delay);
 }
 
-// 🚀 START INFINITE PACK OPENING
+//START INFINITE PACK OPENING
 openInfinitePacks(5, 1500);
