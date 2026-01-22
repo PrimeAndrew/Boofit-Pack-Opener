@@ -95,6 +95,6 @@ function openInfinitePacks(packName, batchSize = 10, delay = 200) {
   }, delay);
 }
 
-// 🚀 ASK USER FOR PACK
+//ASK USER FOR PACK
 const chosenPack = prompt("Which pack do you want to open?").trim();
 if (chosenPack) openInfinitePacks(chosenPack);
