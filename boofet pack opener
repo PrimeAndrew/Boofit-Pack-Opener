@@ -9,6 +9,7 @@ panel.style = `
   overflow-y: auto;
   padding: 12px;
   font-family: monospace;
+  font-weight: bold; /* bold font */
   color: white;
   border-radius: 14px;
   z-index: 999999;
@@ -26,7 +27,6 @@ panel.style = `
   animation: rainbow 12s ease infinite;
   box-shadow: 0 0 25px rgba(0,0,0,.6);
 `;
-
 panel.innerHTML = `<b>Boofit Pack Opener</b><hr>`;
 document.body.appendChild(panel);
 
@@ -56,27 +56,45 @@ footer.style = "margin-top:10px;opacity:0.8;font-size:12px;";
 footer.innerHTML = `<hr>Thanks for using my opener<br>- PrimeAndrew / PrimeAugust`;
 panel.appendChild(footer);
 
-// ===== INFINITE PACK OPENER =====
-let packCount = 0;
+// ===== INFINITE PACK OPENER WITH AGGREGATION =====
+const packCounts = {}; // track counts for each pull
+function openInfinitePacks(packName, batchSize = 10, delay = 200) {
+  const normalized = packName.trim();
+  if (!normalized) return;
 
-function openInfinitePacks(batchSize = 5, delay = 200) {
   setInterval(() => {
     for (let i = 0; i < batchSize; i++) {
-      packCount++;
       const pull = rollPack();
+      const key = pull.name;
 
-      const line = document.createElement("div");
-      line.style.color = pull.color;
-      line.textContent = `#${packCount} → ${pull.name}`;
-      
-      // Insert line **before the footer** so footer stays at bottom
-      panel.insertBefore(line, footer);
+      // increase count
+      packCounts[key] = (packCounts[key] || 0) + 1;
 
-      // Scroll panel to bottom
-      panel.scrollTop = panel.scrollHeight;
+      // if line already exists, update it; otherwise, create it
+      let line = panel.querySelector(`[data-pull="${key}"]`);
+      if (!line) {
+        line = document.createElement("div");
+        line.style.color = pull.color;
+        line.dataset.pull = key;
+        line.textContent = `${key} x1`;
+        panel.insertBefore(line, footer);
+      } else {
+        let count = packCounts[key];
+        // show in k if large enough
+        if (count >= 1000) {
+          const kCount = Math.floor(count / 1000);
+          line.textContent = `${key} x${kCount}k`;
+        } else {
+          line.textContent = `${key} x${count}`;
+        }
+      }
     }
+
+    // scroll panel
+    panel.scrollTop = panel.scrollHeight;
   }, delay);
 }
 
-//START INFINITE PACK OPENING
-openInfinitePacks(5, 1500);
+// 🚀 ASK USER FOR PACK
+const chosenPack = prompt("Which pack do you want to open?").trim();
+if (chosenPack) openInfinitePacks(chosenPack);
